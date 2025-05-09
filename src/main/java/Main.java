@@ -8,7 +8,7 @@ import java.util.function.Consumer;
 class Main {
     public static void main(String[] args) throws InterruptedException {
         // Create a message handler that simply prints the message
-        Consumer<MessageRelay.Message> messageHandler = message -> {
+        Consumer<Message> messageHandler = message -> {
             System.out.println("Processing message: " + message);
 
             // Simulate some processing time
@@ -30,7 +30,7 @@ class Main {
         for (int i = 0; i < 100; i++) {
             String id = UUID.randomUUID().toString();
             String instrument = instruments[i % instruments.length];
-            relay.receiveMessage(new MessageRelay.Message(id, "Test message " + i, instrument));
+            relay.receiveMessage(new Message(id, "Test message " + i, instrument));
         }
 
         // Wait a bit and check pending messages
@@ -47,7 +47,7 @@ class Main {
         System.out.println("\nSending burst of 50 messages for a single instrument (AAPL)...");
         for (int i = 0; i < 50; i++) {
             String id = UUID.randomUUID().toString();
-            relay.receiveMessage(new MessageRelay.Message(id, "AAPL message " + i, "AAPL"));
+            relay.receiveMessage(new Message(id, "AAPL message " + i, "AAPL"));
         }
 
         // Wait for some messages to be processed
@@ -58,7 +58,7 @@ class Main {
         for (int i = 0; i < 20; i++) {
             String id = UUID.randomUUID().toString();
             String instrument = instruments[i % instruments.length];
-            relay.receiveMessage(new MessageRelay.Message(id, "Delayed message " + i, instrument));
+            relay.receiveMessage(new Message(id, "Delayed message " + i, instrument));
             Thread.sleep(100);  // Add delay between messages
         }
 
