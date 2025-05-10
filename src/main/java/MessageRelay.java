@@ -1,17 +1,18 @@
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
 /**
- * A message relay service that processes and forwards messages.
- * <p>
- * TODO for candidate: Implement message rate limiting/throttling to prevent overwhelming
+ * A message relay service that processes and forwards messages with rate limiting/throttling to prevent overwhelming
  * the system when a large number of messages arrive in a short period of time.
  */
 public class MessageRelay {
     private final BlockingQueue<Message> messageQueue;
     private final Consumer<Message> messageHandler;
     private final Thread processingThread;
+    private final int maxMessages;
+    private final long interval;
     private volatile boolean isRunning;
 
     /**
@@ -19,9 +20,11 @@ public class MessageRelay {
      *
      * @param messageHandler The handler that will process forwarded messages
      */
-    public MessageRelay(Consumer<Message> messageHandler) {
+    public MessageRelay(Consumer<Message> messageHandler, int maxMessages, long interval) {
         this.messageQueue = new LinkedBlockingQueue<>();
         this.messageHandler = messageHandler;
+        this.maxMessages = maxMessages;
+        this.interval = interval;
         this.isRunning = true;
 
         // Start processing thread
@@ -48,28 +51,30 @@ public class MessageRelay {
     }
 
     /**
-     * The main message processing loop.
-     * <p>
-     * TODO for candidate: This is where you should implement the rate limiting logic.
-     * Currently, this method processes messages as fast as they come in, which could
-     * cause problems under high load.
-     * <p>
-     * IMPORTANT: Implement a per-instrument throttling mechanism. Messages for the same
-     * instrument should be rate-limited independently of messages for other instruments.
-     * Hint: Consider using a Map to track rate limits for each instrument.
+     * The main message processing loop with a per-instrument throttling mechanism.
+     * Messages for the same instrument are rate-limited independently of messages for other instruments.
      */
-
     private void processMessages() {
+        var timestamps = new HashMap<String, Long>();
+
         while (isRunning) {
             try {
                 Message message = messageQueue.take();
 
-                // Forward the message to the handler
-                messageHandler.accept(message);
+                String instrument = message.getInstrument();
+                long now = System.currentTimeMillis();
 
-                // TODO: Implement rate limiting/throttling here
-                // For each instrument, you should limit the rate at which messages can be processed
-                // For example, no more than X messages per instrument per second
+                // Forward the message to the handler
+                if (timestamps.containsKey(instrument)) {
+                    long previous = timestamps.get(instrument);
+                    if (now - previous >= interval / maxMessages) {
+                        messageHandler.accept(message);
+                        timestamps.replace(instrument, now);
+                    }
+                } else {
+                    messageHandler.accept(message);
+                    timestamps.put(instrument, now);
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 if (isRunning) {

@@ -20,7 +20,7 @@ class Main {
         };
 
         // Create the message relay
-        MessageRelay relay = new MessageRelay(messageHandler);
+        MessageRelay relay = new MessageRelay(messageHandler, 1, 1000L);
 
         // List of different instruments to test with
         String[] instruments = {"AAPL", "MSFT", "GOOG", "AMZN", "TSLA"};
